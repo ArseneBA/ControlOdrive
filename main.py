@@ -36,10 +36,10 @@ odrv0.axis0.motor.config.motor_type = MotorType.HIGH_CURRENT
 # cpr = 6* pole pairs
 odrv0.axis0.encoder.config.mode = EncoderMode.HALL
 odrv0.axis0.encoder.config.cpr = 6 * 8
-# ERROR_ENCODER_CPR_POLEPAIRS_MISMATCH
-odrv0.axis0.encoder.config.calib_scan_distance = 8 * 2 * 2 * math.pi
-odrv0.axis0.encoder.config.calib_range = 0.05
  """
+
+
+
 """ print("Hall polarity calibration")
 odrv0.axis0.requested_state = AxisState.ENCODER_HALL_POLARITY_CALIBRATION
 sleep(10)
@@ -55,34 +55,72 @@ print(odrv0.axis0.encoder.error)
 # Start the calibration
 print("Start Calibration")
 odrv0.axis0.requested_state = AxisState.FULL_CALIBRATION_SEQUENCE
-"""
+ """
+class Odrive:
+
+    def __init__(self):
+        print("Look for an odrive ...")
+        self.odrv0 = odrive.find_any()
+        print("Odrive found")
+
+    def configuration(self):
+        print("Configuration hoverboard style")
+
+        # Test erreur DRV_FAULT
+        self.odrv0.axis0.motor.config.motor_type = MotorType.HIGH_CURRENT
 
 
-print("Look for an odrive ...")
-odrv0 = odrive.find_any()
-print("Odrive found")
+        # Configuration
+        self.odrv0.config.enable_brake_resistor = True
+        self.odrv0.config.brake_resistance = 3.5
 
-odrv0.config.enable_brake_resistor = True
-odrv0.config.brake_resistance = 3000
+        self.odrv0.axis0.motor.config.pole_pairs = 8
 
-odrv0.axis0.motor.config.pole_pairs = 8
-odrv0.axis0.motor.config.resistance_calib_max_voltage = 4
-odrv0.axis0.motor.config.requested_current_range = 25 #Requires config save and reboot
-odrv0.axis0.motor.config.current_control_bandwidth = 100
-odrv0.axis0.motor.config.torque_constant = 0.21
+        self.odrv0.axis0.motor.config.resistance_calib_max_voltage = 4
+        self.odrv0.axis0.motor.config.requested_current_range = 25 #Requires config save and reboot
+        self.odrv0.axis0.motor.config.current_control_bandwidth = 100
+        self.odrv0.axis0.motor.config.torque_constant = 0.21  # Not sure of this value
 
-odrv0.axis0.encoder.config.mode = EncoderMode.HALL
-odrv0.axis0.encoder.config.cpr = 6 * 8
-odrv0.axis0.encoder.config.calib_scan_distance = 150
-odrv0.config.gpio9_mode = GpioMode.DIGITAL
-odrv0.config.gpio10_mode = GpioMode.DIGITAL
-odrv0.config.gpio11_mode = GpioMode.DIGITAL
+        self.odrv0.axis0.encoder.config.mode = EncoderMode.HALL
+        self.odrv0.axis0.encoder.config.cpr = 6 * 8
+        self.odrv0.axis0.encoder.config.calib_scan_distance = 150
+        self.odrv0.config.gpio9_mode = GpioMode.DIGITAL
+        self.odrv0.config.gpio10_mode = GpioMode.DIGITAL
+        self.odrv0.config.gpio11_mode = GpioMode.DIGITAL
 
-odrv0.axis0.encoder.config.bandwidth = 100
-odrv0.axis0.controller.config.pos_gain = 1
-odrv0.axis0.controller.config.vel_gain = 0.02 * odrv0.axis0.motor.config.torque_constant * odrv0.axis0.encoder.config.cpr
-odrv0.axis0.controller.config.vel_integrator_gain = 0.1 * odrv0.axis0.motor.config.torque_constant * odrv0.axis0.encoder.config.cpr
-odrv0.axis0.controller.config.vel_limit = 10
-odrv0.axis0.controller.config.control_mode = ControlMode.VELOCITY_CONTROL
+        self.odrv0.axis0.encoder.config.bandwidth = 100
+        self.odrv0.axis0.controller.config.pos_gain = 1
+        self.odrv0.axis0.controller.config.vel_gain = 0.02 * self.odrv0.axis0.motor.config.torque_constant * self.odrv0.axis0.encoder.config.cpr
+        self.odrv0.axis0.controller.config.vel_integrator_gain = 0.1 * self.odrv0.axis0.motor.config.torque_constant * self.odrv0.axis0.encoder.config.cpr
+        self.odrv0.axis0.controller.config.vel_limit = 10
 
- 
+        """ 
+        self.odrv0.axis0.encoder.config.pre_calibrated = True
+        self.odrv0.axis0.motor.config.pre_calibrated = True
+
+        self.odrv0.axis0.requested_state = AxisState.CLOSED_LOOP_CONTROL
+        self.odrv0.axis0.controller.input_vel = 2
+        """
+        print("End configuration")
+
+    def set_turn_s(self, turn_s):
+        self.odrv0.axis0.controller.config.control_mode = ControlMode.VELOCITY_CONTROL
+        self.odrv0.axis0.controller.input_vel = 2
+        self.odrv0.axis0.requested_state = AxisState.CLOSED_LOOP_CONTROL
+
+    def get_values(self):
+        print("pos_estimate", self.odrv0.axis0.encoder.pos_estimate)
+        print("pos_estimate_counts", self.odrv0.axis0.encoder.pos_estimate_counts)
+        print("pos_circular", self.odrv0.axis0.encoder.pos_circular)
+        print("vel_estimate", self.odrv0.axis0.encoder.vel_estimate, "\n")
+
+
+odrive_motor = Odrive()
+# odrive_motor.configuration()
+odrive_motor.set_turn_s(2)
+n = 0
+while n < 100:
+    odrive_motor.get_values()
+    sleep(0.1)
+    n += 1
+odrive_motor.odrv0.axis0.requested_state = AxisState.IDLE
