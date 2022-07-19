@@ -1,6 +1,5 @@
 import odrive
 from odrive.enums import *
-import math
 from time import sleep
 
 """ encoder_is_present = False
@@ -68,7 +67,6 @@ class Odrive:
 
         # Test erreur DRV_FAULT
         self.odrv0.axis1.motor.config.motor_type = MotorType.HIGH_CURRENT
-
 
         # Configuration
         self.odrv0.config.enable_brake_resistor = True
