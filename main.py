@@ -9,8 +9,8 @@ class Odrive:
         print("Odrive found")
 
     def _config_encoder(self, mode, cpr,  bandwidth, calib_scan_distance=None, calib_range=None):
-        self.odrv0.axis1.encoder.config.mode = mode
-        self.odrv0.axis1.encoder.config.cpr = cpr
+        self.odrv0.axis1.encoder.config.mode = mode  # Mode of the encoder
+        self.odrv0.axis1.encoder.config.cpr = cpr  # Count Per Revolution
         self.odrv0.axis1.encoder.config.bandwidth = bandwidth
         if mode == EncoderMode.HALL:
             self.odrv0.axis1.encoder.config.calib_scan_distance = calib_scan_distance
@@ -36,7 +36,7 @@ class Odrive:
         self.odrv0.config.brake_resistance = 3.5
 
     def _config_controller(self, vel_limit):
-        self.odrv0.axis1.controller.config.pos_gain = 1
+        self.odrv0.axis1.controller.config.pos_gain = 1  # For position control
         self.odrv0.axis1.controller.config.vel_gain = 0.02 * self.odrv0.axis1.motor.config.torque_constant * \
                                                       self.odrv0.axis1.encoder.config.cpr
         self.odrv0.axis1.controller.config.vel_integrator_gain = 0.1 * self.odrv0.axis1.motor.config.torque_constant * \
@@ -75,18 +75,18 @@ class OdriveEncoderHall(Odrive):
         self._config_motor(self.pole_pairs)
         self._config_brake_resistor()
         self._config_controller(self.vel_limit)
-        print("End of configuration")
+        print("Configuration done")
 
 
 class OdriveEncoderIncremental(Odrive):
     def __init__(self):
         Odrive.__init__(self)
         self.mode = EncoderMode.INCREMENTAL
-        self.cpr = 4 * 6000  # Sensix documentation
+        self.cpr = 24000 * 5  # Sensix documentation
         self.calib_range = 0.05  # Relax the sensibility for the encoder
-        self.bandwidth = 100  # Check the right value for this parameter
-        self.pole_pairs = 8 * 42  # Reduction of 41.8:1, here we consider it to be 42:1
-        self.vel_limit = 10 / 42
+        self.bandwidth = 3000  # We have a lot of point, so we need a big bandwidth
+        self.pole_pairs = 8 * 209  # Reduction of 41.8:1, here we consider it to be 42:1
+        self.vel_limit = 10 / 209
 
     def configuration(self):
         print("Configuration for Incremental encoder")
@@ -94,9 +94,10 @@ class OdriveEncoderIncremental(Odrive):
         self._config_motor(self.pole_pairs)
         self._config_brake_resistor()
         self._config_controller(self.vel_limit)
+        print("Configuration done")
 
 
-odrive_motor = OdriveEncoderHall()
+odrive_motor = OdriveEncoderIncremental()
 odrive_motor.configuration()
 """ odrive_motor.set_turn_s(2)
 n = 0
