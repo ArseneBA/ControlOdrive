@@ -47,12 +47,12 @@ class Odrive:
         self.odrv0.axis1.encoder.config.pre_calibrated = True
         self.odrv0.axis1.motor.config.pre_calibrated = True
 
-    def set_turn_s(self, turn_s):
+    def _set_turn_s(self, turn_s):
         self.odrv0.axis1.controller.config.control_mode = ControlMode.VELOCITY_CONTROL
         self.odrv0.axis1.controller.input_vel = turn_s
         self.odrv0.axis1.requested_state = AxisState.CLOSED_LOOP_CONTROL
 
-    def get_values(self):
+    def print_values(self):
         print("pos_estimate", self.odrv0.axis1.encoder.pos_estimate)
         print("pos_estimate_counts", self.odrv0.axis1.encoder.pos_estimate_counts)
         print("pos_circular", self.odrv0.axis1.encoder.pos_circular)
@@ -62,47 +62,64 @@ class Odrive:
 class OdriveEncoderHall(Odrive):
     def __init__(self):
         Odrive.__init__(self)
-        self.mode = EncoderMode.HALL
-        self.cpr = 6 * 8
-        self.calib_scan_distance = 150
-        self.bandwidth = 100
-        self.pole_pairs = 8
-        self.vel_limit = 10
+        self._mode = EncoderMode.HALL
+        self._cpr = 6 * 8
+        self._calib_scan_distance = 150
+        self._bandwidth = 100
+        self._pole_pairs = 8
+        self._vel_limit = 10
 
     def configuration(self):
         print("Configuration for HALL encoder")
-        self._config_encoder(self.mode, self.cpr, self.bandwidth, calib_scan_distance=self.calib_scan_distance)
-        self._config_motor(self.pole_pairs)
+        self._config_encoder(self._mode, self._cpr, self._bandwidth, calib_scan_distance=self._calib_scan_distance)
+        self._config_motor(self._pole_pairs)
         self._config_brake_resistor()
-        self._config_controller(self.vel_limit)
+        self._config_controller(self._vel_limit)
         print("Configuration done")
+
+    def set_speed(self, speed: float):
+        """
+        Sets the motor to a given speed in turn/s
+        """
+        self._set_turn_s(speed)
+
+    def get_angle(self) -> int:
+        """
+        Gives the angles corresponding of the crank.
+
+        Returns
+        -------
+        angle : int
+            Crank angle value (0-360)
+        """
+        # TODO:To reset this value we could use the Z value from the lm13.
+        pass
 
 
 class OdriveEncoderIncremental(Odrive):
+
+    REDUCTION_POLE_PAIRS = 209
+    REDUCTION_CPR = 5
+
     def __init__(self):
         Odrive.__init__(self)
-        self.mode = EncoderMode.INCREMENTAL
-        self.cpr = 24000 * 5  # Sensix documentation
+        self._mode = EncoderMode.INCREMENTAL
+        self._cpr = 24000 * self.REDUCTION_CPR  # Sensix documentation
         self.calib_range = 0.05  # Relax the sensibility for the encoder
-        self.bandwidth = 3000  # We have a lot of point, so we need a big bandwidth
-        self.pole_pairs = 8 * 209  # Reduction of 41.8:1, here we consider it to be 42:1
-        self.vel_limit = 10 / 209
+        self._bandwidth = 3000  # We have a lot of point, so we need a big bandwidth
+        self._pole_pairs = 8 * self.REDUCTION_POLE_PAIRS  # Reduction of 41.8:1, here we consider it to be 42:1
+        self._vel_limit = 10 / 209
 
     def configuration(self):
         print("Configuration for Incremental encoder")
-        self._config_encoder(self.mode, self.cpr, self.bandwidth, calib_range=self.calib_range)
-        self._config_motor(self.pole_pairs)
+        self._config_encoder(self._mode, self._cpr, self._bandwidth, calib_range=self.calib_range)
+        self._config_motor(self._pole_pairs)
         self._config_brake_resistor()
-        self._config_controller(self.vel_limit)
+        self._config_controller(self._vel_limit)
         print("Configuration done")
 
-
-odrive_motor = OdriveEncoderIncremental()
-odrive_motor.configuration()
-""" odrive_motor.set_turn_s(2)
-n = 0
-while n < 100:
-    odrive_motor.get_values()
-    sleep(0.1)
-    n += 1
-odrive_motor.odrv0.axis1.requested_state = AxisState.IDLE """
+    def set_speed(self, speed: float):
+        """
+        Sets the motor to a given speed in turn/s
+        """
+        self._set_turn_s(speed / self.REDUCTION_POLE_PAIRS)
