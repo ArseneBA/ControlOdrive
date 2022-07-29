@@ -123,7 +123,3 @@ class OdriveEncoderIncremental(Odrive):
         Sets the motor to a given speed in turn/s
         """
         self._set_turn_s(speed / self.REDUCTION_POLE_PAIRS)
-
-
-motor = OdriveEncoderHall()
-motor.configuration()
