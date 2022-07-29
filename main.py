@@ -29,11 +29,11 @@ class Odrive:
         self.odrv0.axis1.motor.config.resistance_calib_max_voltage = 20
         self.odrv0.axis1.motor.config.requested_current_range = 25  # Requires config save and reboot
         self.odrv0.axis1.motor.config.current_control_bandwidth = 100
-        self.odrv0.axis1.motor.config.torque_constant = 0.21  # Not sure of this value
+        self.odrv0.axis1.motor.config.torque_constant = 0.093
 
     def _config_brake_resistor(self):
         self.odrv0.config.enable_brake_resistor = True
-        self.odrv0.config.brake_resistance = 3.5
+        self.odrv0.config.brake_resistance = 3.3
 
     def _config_controller(self, vel_limit):
         self.odrv0.axis1.controller.config.pos_gain = 1  # For position control
@@ -123,3 +123,7 @@ class OdriveEncoderIncremental(Odrive):
         Sets the motor to a given speed in turn/s
         """
         self._set_turn_s(speed / self.REDUCTION_POLE_PAIRS)
+
+
+motor = OdriveEncoderHall()
+motor.configuration()
