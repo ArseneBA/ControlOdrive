@@ -6,4 +6,4 @@ from Motor import *
 motor = OdriveEncoderHall()
 motor.erase_configuration()
 motor.configuration()
-# motor.calibration()
+motor.calibration()
