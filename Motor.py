@@ -66,13 +66,13 @@ class Odrive:
             Relaxation of the encoder.
         """
 
-        self.odrv0.axis1.encoder.config.mode = mode  # Mode of the encoder
-        self.odrv0.axis1.encoder.config.cpr = cpr  # Count Per Revolution
-        self.odrv0.axis1.encoder.config.bandwidth = bandwidth
+        self.odrv0.axis0.encoder.config.mode = mode  # Mode of the encoder
+        self.odrv0.axis0.encoder.config.cpr = cpr  # Count Per Revolution
+        self.odrv0.axis0.encoder.config.bandwidth = bandwidth
         if mode == EncoderMode.HALL:
-            self.odrv0.axis1.encoder.config.calib_scan_distance = calib_scan_distance
+            self.odrv0.axis0.encoder.config.calib_scan_distance = calib_scan_distance
         elif mode == EncoderMode.INCREMENTAL:
-            self.odrv0.axis1.encoder.config.calib_range = calib_range
+            self.odrv0.axis0.encoder.config.calib_range = calib_range
 
         self.odrv0.config.gpio9_mode = GpioMode.DIGITAL
         self.odrv0.config.gpio10_mode = GpioMode.DIGITAL
@@ -85,16 +85,16 @@ class Odrive:
             Number of pole pairs (pairs of permanent magnet) in the motor.
         """
 
-        self.odrv0.axis1.motor.config.motor_type = MotorType.HIGH_CURRENT
-        self.odrv0.axis1.motor.config.pole_pairs = pole_pairs
+        self.odrv0.axis0.motor.config.motor_type = MotorType.HIGH_CURRENT
+        self.odrv0.axis0.motor.config.pole_pairs = pole_pairs
 
-        self.odrv0.axis1.motor.config.calibration_current = 10
-        self.odrv0.axis1.motor.config.resistance_calib_max_voltage = 20
-        self.odrv0.axis1.motor.config.requested_current_range = 25  # Requires config save and reboot
-        self.odrv0.axis1.motor.config.current_control_bandwidth = 100
-        self.odrv0.axis1.motor.config.torque_constant = 0.21  # Not sure of this value
+        self.odrv0.axis0.motor.config.calibration_current = 10
+        self.odrv0.axis0.motor.config.resistance_calib_max_voltage = 20
+        self.odrv0.axis0.motor.config.requested_current_range = 25  # Requires config save and reboot
+        self.odrv0.axis0.motor.config.current_control_bandwidth = 100
+        self.odrv0.axis0.motor.config.torque_constant = 0.21  # Not sure of this value
 
-        self.odrv0.axis1.motor.config.current_lim = 10
+        self.odrv0.axis0.motor.config.current_lim = 10
 
     def _config_brake_resistor(self):
         """
@@ -118,24 +118,24 @@ class Odrive:
         vel_limit: int
             Velocity limit of the motor.
         """
-        self.odrv0.axis1.controller.config.pos_gain = 1  # For position control
-        self.odrv0.axis1.controller.config.vel_gain = 0.02 * self.odrv0.axis1.motor.config.torque_constant * \
-                                                      self.odrv0.axis1.encoder.config.cpr
-        self.odrv0.axis1.controller.config.vel_integrator_gain = 0.1 * self.odrv0.axis1.motor.config.torque_constant * \
-                                                                 self.odrv0.axis1.encoder.config.cpr
-        self.odrv0.axis1.controller.config.vel_limit = vel_limit
+        self.odrv0.axis0.controller.config.pos_gain = 1  # For position control
+        self.odrv0.axis0.controller.config.vel_gain = 0.02 * self.odrv0.axis0.motor.config.torque_constant * \
+                                                      self.odrv0.axis0.encoder.config.cpr
+        self.odrv0.axis0.controller.config.vel_integrator_gain = 0.1 * self.odrv0.axis0.motor.config.torque_constant * \
+                                                                 self.odrv0.axis0.encoder.config.cpr
+        self.odrv0.axis0.controller.config.vel_limit = vel_limit
 
     def calibration(self):
         """
         Calibrates the odrive.
         """
         print("Start motor calibration")
-        self.odrv0.axis1.requested_state = AxisState.FULL_CALIBRATION_SEQUENCE
+        self.odrv0.axis0.requested_state = AxisState.FULL_CALIBRATION_SEQUENCE
         time.sleep(38)
 
-        if (self.odrv0.error == 0 and self.odrv0.axis1.error == 0 and self.odrv0.axis1.motor.error == 0
-                and self.odrv0.axis1.error == 0 and self.odrv0.axis1.controller.error == 0
-                and self.odrv0.axis1.sensorless_estimator.error == 0):
+        if (self.odrv0.error == 0 and self.odrv0.axis0.error == 0 and self.odrv0.axis0.motor.error == 0
+                and self.odrv0.axis0.error == 0 and self.odrv0.axis0.controller.error == 0
+                and self.odrv0.axis0.sensorless_estimator.error == 0):
             self.confirm_configuration_calibration()
             self.save_configuration()
             print("Calibration done")
@@ -146,8 +146,8 @@ class Odrive:
         """
         Confirms the configuration and calibration. Allows to save the configuration after reboot.
         """
-        self.odrv0.axis1.encoder.config.pre_calibrated = True
-        self.odrv0.axis1.motor.config.pre_calibrated = True
+        self.odrv0.axis0.encoder.config.pre_calibrated = True
+        self.odrv0.axis0.motor.config.pre_calibrated = True
 
     def _set_turn_s(self, turn_s):
         """
@@ -156,10 +156,19 @@ class Odrive:
             Turns per second.
         """
         # TODO: Once the mechanical system is robust remove the abs and the "-"
-        self.odrv0.axis1.controller.config.control_mode = ControlMode.VELOCITY_CONTROL
-        self.odrv0.axis1.controller.input_vel = - abs(turn_s)
-        self.odrv0.axis1.requested_state = AxisState.CLOSED_LOOP_CONTROL
+        self.odrv0.axis0.controller.config.control_mode = ControlMode.VELOCITY_CONTROL
+        self.odrv0.axis0.controller.input_vel = - abs(turn_s)
+        self.odrv0.axis0.requested_state = AxisState.CLOSED_LOOP_CONTROL
 
+    def set_torque(self, torque):
+        """
+        Set the odrive in torque control, choose the torque and start the motor.
+        torque: float
+            Torque that the motor will produce
+        """
+        self.odrv0.axis0.controller.config.control_mode = ControlMode.TORQUE_CONTROL
+        self.odrv0.axis0.controller.input_torque = - abs(torque)
+        self.odrv0.axis0.requested_state = AxisState.CLOSED_LOOP_CONTROL
 
 class OdriveEncoderHall(Odrive):
     """
@@ -173,7 +182,7 @@ class OdriveEncoderHall(Odrive):
         self._bandwidth = 100
         self._pole_pairs = 8
         self._vel_limit = 10
-        self._shadow_count_init = self.odrv0.axis1.encoder.shadow_count
+        self._shadow_count_init = self.odrv0.axis0.encoder.shadow_count
         self._angle_motor = 0
         self._angle_crank = 0
 
@@ -210,7 +219,7 @@ class OdriveEncoderHall(Odrive):
             Motor angle value (0-360)
         """
         # TODO:To reset this value we could use the Z value from the lm13.
-        shadow_count = self.odrv0.axis1.encoder.shadow_count
+        shadow_count = self.odrv0.axis0.encoder.shadow_count
 
         print("dif shadow", self._old_shadow - shadow_count)
         self._old_shadow = shadow_count
@@ -228,7 +237,7 @@ class OdriveEncoderHall(Odrive):
         _angle_crank : float
             Crank angle value (0-360)
         """
-        shadow_count = self.odrv0.axis1.encoder.shadow_count
+        shadow_count = self.odrv0.axis0.encoder.shadow_count
         self._angle_crank = ((((self._shadow_count_init - shadow_count) / 48) * 360) / 41.8) % 360
         return self._angle_crank
 
