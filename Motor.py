@@ -1,16 +1,25 @@
-import time
+""" This code helps to configure, calibrate and use an odrive with a TSDZ2 motor."""
 
+import time
 import odrive
 from odrive.enums import *
 
 
 class Odrive:
+    """
+    Represents a motor controlled by odrive. Should not be use directly.
+    """
     def __init__(self):
         print("Look for an odrive ...")
         self.odrv0 = odrive.find_any()
         print("Odrive found")
 
     def erase_configuration(self):
+        """
+        Erases the configuration present on the odrive.
+        Error "[LEGACY_OBJ] protocol failed with 3 - propagating error to application" is not an issue.
+        """
+
         try:
             self.odrv0.erase_configuration()
         except:
@@ -21,8 +30,13 @@ class Odrive:
         except:
             pass
         self.odrv0 = odrive.find_any()
-        
+
     def save_configuration(self):
+        """
+        Saves the configuration present on the odrive.
+        Error "[LEGACY_OBJ] protocol failed with 3 - propagating error to application" is not an issue.
+        """
+
         try:
             self.odrv0.save_configuration()
         except:
@@ -35,6 +49,23 @@ class Odrive:
         self.odrv0 = odrive.find_any()
 
     def _config_encoder(self, mode, cpr,  bandwidth, calib_scan_distance=None, calib_range=None):
+        """
+        Configures the Encoder.
+
+        Parameters
+        ----------
+        mode: int
+            Correspond to the encoder mode (EncoderMode. )
+        cpr: int
+            Count per revolution of the encoder.
+        bandwidth: int
+            Bandwidth of the encoder.
+        calib_scan_distance: int
+            Distance of the calibration.
+        calib_range: int
+            Relaxation of the encoder.
+        """
+
         self.odrv0.axis1.encoder.config.mode = mode  # Mode of the encoder
         self.odrv0.axis1.encoder.config.cpr = cpr  # Count Per Revolution
         self.odrv0.axis1.encoder.config.bandwidth = bandwidth
@@ -48,6 +79,12 @@ class Odrive:
         self.odrv0.config.gpio11_mode = GpioMode.DIGITAL
 
     def _config_motor(self, pole_pairs):
+        """
+        Configures the motor.
+        pole_pairs: int
+            Number of pole pairs (pairs of permanent magnet) in the motor.
+        """
+
         self.odrv0.axis1.motor.config.motor_type = MotorType.HIGH_CURRENT
         self.odrv0.axis1.motor.config.pole_pairs = pole_pairs
 
@@ -60,15 +97,27 @@ class Odrive:
         self.odrv0.axis1.motor.config.current_lim = 10
 
     def _config_brake_resistor(self):
+        """
+        Configures the brake resistor.
+        """
+
         self.odrv0.config.enable_brake_resistor = True
         self.odrv0.config.brake_resistance = 3.3
 
     def _config_overvoltage(self):
+        """
+        Configures the monitoring of over voltage.
+        """
         self.odrv0.config.enable_dc_bus_overvoltage_ramp = True
         self.odrv0.config.dc_bus_overvoltage_ramp_start = 53
         self.odrv0.config.dc_bus_overvoltage_ramp_end = 56
 
     def _config_controller(self, vel_limit):
+        """
+        Configures the controller.
+        vel_limit: int
+            Velocity limit of the motor.
+        """
         self.odrv0.axis1.controller.config.pos_gain = 1  # For position control
         self.odrv0.axis1.controller.config.vel_gain = 0.02 * self.odrv0.axis1.motor.config.torque_constant * \
                                                       self.odrv0.axis1.encoder.config.cpr
@@ -77,6 +126,9 @@ class Odrive:
         self.odrv0.axis1.controller.config.vel_limit = vel_limit
 
     def calibration(self):
+        """
+        Calibrates the odrive.
+        """
         print("Start motor calibration")
         self.odrv0.axis1.requested_state = AxisState.FULL_CALIBRATION_SEQUENCE
         time.sleep(38)
@@ -91,28 +143,28 @@ class Odrive:
             raise RuntimeError("Error with configuration and/or calibration. Check odrivetool -> dump_errors(odr0)")
 
     def confirm_configuration_calibration(self):
+        """
+        Confirms the configuration and calibration. Allows to save the configuration after reboot.
+        """
         self.odrv0.axis1.encoder.config.pre_calibrated = True
         self.odrv0.axis1.motor.config.pre_calibrated = True
 
     def _set_turn_s(self, turn_s):
+        """
+        Set the velocity in turn per second.
+        turn_s: float
+            Turns per second.
+        """
         # TODO: Once the mechanical system is robust remove the abs and the "-"
         self.odrv0.axis1.controller.config.control_mode = ControlMode.VELOCITY_CONTROL
         self.odrv0.axis1.controller.input_vel = - abs(turn_s)
         self.odrv0.axis1.requested_state = AxisState.CLOSED_LOOP_CONTROL
 
-    def print_values(self):
-        print("shadow_count", self.odrv0.axis1.encoder.shadow_count)
-        # print("pos_estimate", self.odrv0.axis1.encoder.pos_estimate)
-        # print("pos_estimate_counts", self.odrv0.axis1.encoder.pos_estimate_counts)
-        # print("pos_circular", self.odrv0.axis1.encoder.pos_circular)
-        # print("shadow_count", self.odrv0.axis1.encoder.shadow_count)
-        # print("count_in_cpr", self.odrv0.axis1.encoder.count_in_cpr)
-        print("pos_cpr_counts", self.odrv0.axis1.encoder.pos_cpr_counts)
-        # print("delta_pos_cpr_counts", self.odrv0.axis1.encoder.delta_pos_cpr_counts)
-        print("vel_estimate", self.odrv0.axis1.encoder.vel_estimate, "\n")
-
 
 class OdriveEncoderHall(Odrive):
+    """
+    Represents a motor controlled by an odrive with the integrated Hall encoder.
+    """
     def __init__(self):
         Odrive.__init__(self)
         self._mode = EncoderMode.HALL
@@ -128,6 +180,9 @@ class OdriveEncoderHall(Odrive):
         self._old_shadow = 0
 
     def configuration(self):
+        """
+        Configures the odrive.
+        """
         print("Configuration for HALL encoder")
         self._config_encoder(self._mode, self._cpr, self._bandwidth, calib_scan_distance=self._calib_scan_distance)
         self._config_motor(self._pole_pairs)
@@ -179,6 +234,9 @@ class OdriveEncoderHall(Odrive):
 
 
 class OdriveEncoderIncremental(Odrive):
+    """
+    Represents a motor controlled by an odrive with the lm13 encoder.
+    """
 
     REDUCTION_POLE_PAIRS = 209
     REDUCTION_CPR = 5
@@ -193,6 +251,9 @@ class OdriveEncoderIncremental(Odrive):
         self._vel_limit = 10 / 209
 
     def configuration(self):
+        """
+        Configures the odrive.
+        """
         print("Configuration for Incremental encoder")
         self._config_encoder(self._mode, self._cpr, self._bandwidth, calib_range=self.calib_range)
         self._config_motor(self._pole_pairs)
