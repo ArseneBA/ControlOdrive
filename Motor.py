@@ -1,3 +1,5 @@
+import time
+
 import odrive
 from odrive.enums import *
 
@@ -7,6 +9,18 @@ class Odrive:
         print("Look for an odrive ...")
         self.odrv0 = odrive.find_any()
         print("Odrive found")
+
+    def save_configuration(self):
+        try:
+            self.odrv0.save_configuration()
+        except:
+            pass
+        self.odrv0 = odrive.find_any()
+        try:
+            self.odrv0.reboot()
+        except:
+            pass
+        self.odrv0 = odrive.find_any()
 
     def _config_encoder(self, mode, cpr,  bandwidth, calib_scan_distance=None, calib_range=None):
         self.odrv0.axis1.encoder.config.mode = mode  # Mode of the encoder
@@ -31,9 +45,16 @@ class Odrive:
         self.odrv0.axis1.motor.config.current_control_bandwidth = 100
         self.odrv0.axis1.motor.config.torque_constant = 0.21  # Not sure of this value
 
+        self.odrv0.axis1.motor.config.current_lim = 10
+
     def _config_brake_resistor(self):
         self.odrv0.config.enable_brake_resistor = True
-        self.odrv0.config.brake_resistance = 3.5
+        self.odrv0.config.brake_resistance = 3.3
+
+    def _config_overvoltage(self):
+        self.odrv0.config.enable_dc_bus_overvoltage_ramp = True
+        self.odrv0.config.dc_bus_overvoltage_ramp_start = 53
+        self.odrv0.config.dc_bus_overvoltage_ramp_end = 56
 
     def _config_controller(self, vel_limit):
         self.odrv0.axis1.controller.config.pos_gain = 1  # For position control
@@ -43,13 +64,27 @@ class Odrive:
                                                                  self.odrv0.axis1.encoder.config.cpr
         self.odrv0.axis1.controller.config.vel_limit = vel_limit
 
+    def calibration(self):
+        print("Start motor calibration")
+        self.odrv0.axis1.requested_state = AxisState.FULL_CALIBRATION_SEQUENCE
+        time.sleep(38)
+
+        if (self.odrv0.error == 0 and self.odrv0.axis1.error == 0 and self.odrv0.axis1.motor.error == 0
+                and self.odrv0.axis1.error == 0 and self.odrv0.axis1.controller.error == 0
+                and self.odrv0.axis1.sensorless_estimator.error == 0):
+            self.confirm_configuration_calibration()
+            self.save_configuration()
+            print("Calibration done")
+        else:
+            raise RuntimeError("Error with configuration and/or calibration. Check odrivetool -> dump_errors(odr0)")
+
     def confirm_configuration_calibration(self):
         self.odrv0.axis1.encoder.config.pre_calibrated = True
         self.odrv0.axis1.motor.config.pre_calibrated = True
 
     def _set_turn_s(self, turn_s):
-        self.odrv0.axis1.controller.config.control_mode = ControlMode.VELOCITY_CONTROL
         # TODO: Once the mechanical system is robust remove the abs and the "-"
+        self.odrv0.axis1.controller.config.control_mode = ControlMode.VELOCITY_CONTROL
         self.odrv0.axis1.controller.input_vel = - abs(turn_s)
         self.odrv0.axis1.requested_state = AxisState.CLOSED_LOOP_CONTROL
 
@@ -85,7 +120,10 @@ class OdriveEncoderHall(Odrive):
         self._config_encoder(self._mode, self._cpr, self._bandwidth, calib_scan_distance=self._calib_scan_distance)
         self._config_motor(self._pole_pairs)
         self._config_brake_resistor()
+        self._config_overvoltage()
         self._config_controller(self._vel_limit)
+        self.save_configuration()
+
         print("Configuration done")
 
     def set_speed(self, speed: float):
@@ -147,6 +185,7 @@ class OdriveEncoderIncremental(Odrive):
         self._config_encoder(self._mode, self._cpr, self._bandwidth, calib_range=self.calib_range)
         self._config_motor(self._pole_pairs)
         self._config_brake_resistor()
+        self._config_overvoltage()
         self._config_controller(self._vel_limit)
         print("Configuration done")
 
