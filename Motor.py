@@ -10,6 +10,18 @@ class Odrive:
         self.odrv0 = odrive.find_any()
         print("Odrive found")
 
+    def erase_configuration(self):
+        try:
+            self.odrv0.erase_configuration()
+        except:
+            pass
+        self.odrv0 = odrive.find_any()
+        try:
+            self.odrv0.reboot()
+        except:
+            pass
+        self.odrv0 = odrive.find_any()
+        
     def save_configuration(self):
         try:
             self.odrv0.save_configuration()
