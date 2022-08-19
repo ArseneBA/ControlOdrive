@@ -14,6 +14,7 @@ class Odrive:
         print("Look for an odrive ...")
         self.odrv0 = odrive.find_any()
         self.velocity_limit = 0
+        self.torque_limit = 0
         print("Odrive found")
 
     def erase_configuration(self):
@@ -131,6 +132,8 @@ class Odrive:
                                                                  self.odrv0.axis0.encoder.config.cpr
         self.odrv0.axis0.controller.config.vel_limit = vel_limit
         self.velocity_limit = vel_limit
+        self.odrv0.axis0.controller.config.torque_limit = torque_limit
+        self.torque_limit = torque_limit
 
     def calibration(self):
         """
@@ -175,6 +178,9 @@ class Odrive:
         torque: float
             Torque that the motor will produce
         """
+        # TODO: Once the mechanical system is robust remove the abs and the "-"
+        if torque > self.torque_limit:
+            raise ValueError("Error : Torque max ", self.torque_limit, ". torque given : ", turn_s)
         self.odrv0.axis0.controller.config.control_mode = ControlMode.TORQUE_CONTROL
         self.odrv0.axis0.controller.input_torque = - abs(torque)
         self.odrv0.axis0.requested_state = AxisState.CLOSED_LOOP_CONTROL
@@ -256,6 +262,7 @@ class OdriveEncoderHall(Odrive):
 class OdriveEncoderIncremental(Odrive):
     """
     Represents a motor controlled by an odrive with the lm13 encoder.
+    WARNING : This does not work.
     """
 
     REDUCTION_POLE_PAIRS = 209
