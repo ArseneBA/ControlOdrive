@@ -13,6 +13,7 @@ class Odrive:
     def __init__(self):
         print("Look for an odrive ...")
         self.odrv0 = odrive.find_any()
+        self.velocity_limit = 0
         print("Odrive found")
 
     def erase_configuration(self):
@@ -129,6 +130,7 @@ class Odrive:
         self.odrv0.axis0.controller.config.vel_integrator_gain = 0.1 * self.odrv0.axis0.motor.config.torque_constant * \
                                                                  self.odrv0.axis0.encoder.config.cpr
         self.odrv0.axis0.controller.config.vel_limit = vel_limit
+        self.velocity_limit = vel_limit
 
     def calibration(self):
         """
@@ -161,6 +163,8 @@ class Odrive:
             Turns per second.
         """
         # TODO: Once the mechanical system is robust remove the abs and the "-"
+        if turn_s > self.velocity_limit:
+            raise ValueError("Error : Velocity max ", self.velocity_limit, ". velocity given : ", turn_s)
         self.odrv0.axis0.controller.config.control_mode = ControlMode.VELOCITY_CONTROL
         self.odrv0.axis0.controller.input_vel = - abs(turn_s)
         self.odrv0.axis0.requested_state = AxisState.CLOSED_LOOP_CONTROL
