@@ -9,6 +9,7 @@ class Odrive:
     """
     Represents a motor controlled by odrive. Should not be use directly.
     """
+
     def __init__(self):
         print("Look for an odrive ...")
         self.odrv0 = odrive.find_any()
@@ -48,7 +49,11 @@ class Odrive:
             pass
         self.odrv0 = odrive.find_any()
 
-    def _config_encoder(self, mode, cpr,  bandwidth, calib_scan_distance=None, calib_range=None):
+    def _config_encoder(self, mode: int,
+                        cpr: int,
+                        bandwidth: int,
+                        calib_scan_distance: int = None,
+                        calib_range: float = None):
         """
         Configures the Encoder.
 
@@ -62,7 +67,7 @@ class Odrive:
             Bandwidth of the encoder.
         calib_scan_distance: int
             Distance of the calibration.
-        calib_range: int
+        calib_range: float
             Relaxation of the encoder.
         """
 
@@ -78,7 +83,7 @@ class Odrive:
         self.odrv0.config.gpio10_mode = GpioMode.DIGITAL
         self.odrv0.config.gpio11_mode = GpioMode.DIGITAL
 
-    def _config_motor(self, pole_pairs):
+    def _config_motor(self, pole_pairs: int):
         """
         Configures the motor.
         pole_pairs: int
@@ -112,10 +117,10 @@ class Odrive:
         self.odrv0.config.dc_bus_overvoltage_ramp_start = 53
         self.odrv0.config.dc_bus_overvoltage_ramp_end = 56
 
-    def _config_controller(self, vel_limit):
+    def _config_controller(self, vel_limit: float):
         """
         Configures the controller.
-        vel_limit: int
+        vel_limit: float
             Velocity limit of the motor.
         """
         self.odrv0.axis0.controller.config.pos_gain = 1  # For position control
@@ -149,7 +154,7 @@ class Odrive:
         self.odrv0.axis0.encoder.config.pre_calibrated = True
         self.odrv0.axis0.motor.config.pre_calibrated = True
 
-    def _set_turn_s(self, turn_s):
+    def _set_turn_s(self, turn_s: float):
         """
         Set the velocity in turn per second.
         turn_s: float
@@ -160,7 +165,7 @@ class Odrive:
         self.odrv0.axis0.controller.input_vel = - abs(turn_s)
         self.odrv0.axis0.requested_state = AxisState.CLOSED_LOOP_CONTROL
 
-    def set_torque(self, torque):
+    def set_torque(self, torque: float):
         """
         Set the odrive in torque control, choose the torque and start the motor.
         torque: float
@@ -170,10 +175,12 @@ class Odrive:
         self.odrv0.axis0.controller.input_torque = - abs(torque)
         self.odrv0.axis0.requested_state = AxisState.CLOSED_LOOP_CONTROL
 
+
 class OdriveEncoderHall(Odrive):
     """
     Represents a motor controlled by an odrive with the integrated Hall encoder.
     """
+
     def __init__(self):
         Odrive.__init__(self)
         self._mode = EncoderMode.HALL
