@@ -121,8 +121,8 @@ class Odrive:
         Configures the monitoring of over voltage.
         """
         self.odrv0.config.enable_dc_bus_overvoltage_ramp = True
-        self.odrv0.config.dc_bus_overvoltage_ramp_start = 53
-        self.odrv0.config.dc_bus_overvoltage_ramp_end = 56
+        self.odrv0.config.dc_bus_overvoltage_ramp_start = 48.2
+        self.odrv0.config.dc_bus_overvoltage_ramp_end = 48.35
 
     def _config_controller(self, vel_limit: float):
         """
@@ -184,10 +184,43 @@ class Odrive:
         """
         # TODO: Once the mechanical system is robust remove the abs and the "-"
         if torque > self.torque_limit:
-            raise ValueError("Error : Torque max ", self.torque_limit, ". torque given : ", turn_s)
+            raise ValueError("Error : Torque max ", self.torque_limit, ". torque given : ", torque)
         self.odrv0.axis0.controller.config.control_mode = ControlMode.TORQUE_CONTROL
         self.odrv0.axis0.controller.input_torque = - abs(torque)
         self.odrv0.axis0.requested_state = AxisState.CLOSED_LOOP_CONTROL
+
+    def set_torque_2(self, torque_goal: float, speed: float):
+        self.odrv0.axis0.controller.config.vel_limit = speed
+        self.odrv0.axis0.controller.config.vel_limit_tolerance = 80 - speed
+        self.odrv0.axis0.controller.input_torque = 0.1
+        actual_torque = 0.1
+        self.odrv0.axis0.requested_state = AxisState.CLOSED_LOOP_CONTROL
+
+        while 1 and actual_torque != torque_goal:
+            print("Actual torque :", actual_torque)
+            time.sleep(2)
+            if abs(actual_torque - torque_goal) > 0.02 and actual_torque > torque_goal:
+                actual_torque = self.odrv0.axis0.controller.input_torque = actual_torque - 0.02
+            elif abs(actual_torque - torque_goal) > 0.02 and actual_torque < torque_goal:
+                actual_torque = self.odrv0.axis0.controller.input_torque = actual_torque + 0.02
+            else:
+                actual_torque = self.odrv0.axis0.controller.input_torque = torque_goal
+
+        print("Torque reached")
+
+        stop = False
+        while 1 and not stop:
+            print("Actual torque :", actual_torque)
+            up_or_down = input ("Up (u) or Down (d) by 0.02 or Stop (s) : ")
+            if up_or_down == "u":
+                actual_torque = self.odrv0.axis0.controller.input_torque = actual_torque + 0.02
+            elif up_or_down == "d":
+                actual_torque = self.odrv0.axis0.controller.input_torque = actual_torque - 0.02
+            elif up_or_down == "s":
+                stop = True
+                self.odrv0.axis0.requested_state = AxisState.IDLE
+            else:
+                print("Command not supported")
 
 
 class OdriveEncoderHall(Odrive):
@@ -202,7 +235,7 @@ class OdriveEncoderHall(Odrive):
         self._calib_scan_distance = 150
         self._bandwidth = 100
         self._pole_pairs = 8
-        self._vel_limit = 10
+        self._vel_limit = 20
         self._shadow_count_init = self.odrv0.axis0.encoder.shadow_count
         self._angle_motor = 0
         self._angle_crank = 0
@@ -266,7 +299,7 @@ class OdriveEncoderHall(Odrive):
 class OdriveEncoderIncremental(Odrive):
     """
     Represents a motor controlled by an odrive with the lm13 encoder.
-    WARNING : This does not work. If it work add torque_lim the same way _vel_lim is implemented.
+    WARNING : This does not work. If it works add torque_lim the same way _vel_lim is implemented.
     """
 
     REDUCTION_POLE_PAIRS = 209

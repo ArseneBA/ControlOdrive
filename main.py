@@ -4,6 +4,8 @@ from Motor import *
 
 
 motor = OdriveEncoderHall()
-motor.erase_configuration()
-motor.configuration()
-motor.calibration()
+# motor.erase_configuration()
+# motor.configuration()
+# motor.calibration()
+
+motor.set_torque_2(-0.1, 30)
