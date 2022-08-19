@@ -91,6 +91,7 @@ class Odrive:
         pole_pairs: int
             Number of pole pairs (pairs of permanent magnet) in the motor.
         """
+        torque_limit = 10
 
         self.odrv0.axis0.motor.config.motor_type = MotorType.HIGH_CURRENT
         self.odrv0.axis0.motor.config.pole_pairs = pole_pairs
@@ -102,6 +103,10 @@ class Odrive:
         self.odrv0.axis0.motor.config.torque_constant = 0.21  # Not sure of this value
 
         self.odrv0.axis0.motor.config.current_lim = 10
+
+        # By default torque limit is inf
+        # self.odrv0.axis0.motor.config.torque_lim = torque_limit
+        self.torque_limit = torque_limit
 
     def _config_brake_resistor(self):
         """
@@ -125,6 +130,7 @@ class Odrive:
         vel_limit: float
             Velocity limit of the motor.
         """
+
         self.odrv0.axis0.controller.config.pos_gain = 1  # For position control
         self.odrv0.axis0.controller.config.vel_gain = 0.02 * self.odrv0.axis0.motor.config.torque_constant * \
                                                       self.odrv0.axis0.encoder.config.cpr
@@ -132,8 +138,6 @@ class Odrive:
                                                                  self.odrv0.axis0.encoder.config.cpr
         self.odrv0.axis0.controller.config.vel_limit = vel_limit
         self.velocity_limit = vel_limit
-        self.odrv0.axis0.controller.config.torque_limit = torque_limit
-        self.torque_limit = torque_limit
 
     def calibration(self):
         """
@@ -262,7 +266,7 @@ class OdriveEncoderHall(Odrive):
 class OdriveEncoderIncremental(Odrive):
     """
     Represents a motor controlled by an odrive with the lm13 encoder.
-    WARNING : This does not work.
+    WARNING : This does not work. If it work add torque_lim the same way _vel_lim is implemented.
     """
 
     REDUCTION_POLE_PAIRS = 209
