@@ -132,6 +132,8 @@ class Odrive:
         self.odrv0.axis0.controller.config.vel_limit = vel_limit
         self.velocity_limit = vel_limit
 
+        self.odrv0.axis0.controller.config.vel_limit_tolerance = 2
+
     def calibration(self):
         """
         Calibrates the odrive.
