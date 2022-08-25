@@ -267,7 +267,7 @@ class OdriveEncoderHall(Odrive):
     def get_angle_motor(self) -> float:
         """
         Gives the angles corresponding of the crank.
-        We consider the initial position to be 0°.
+        We consider the initial position to be 0° as a result a calibration is needed.
 
         Returns
         -------
@@ -287,6 +287,7 @@ class OdriveEncoderHall(Odrive):
         """
         Gives the angle of the crank.
         For now, a calibration is needed since the initial angle is considered to be 0.
+        The angle increase while the patient is pedaling forward.
 
         Returns
         -------
