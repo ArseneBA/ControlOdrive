@@ -141,6 +141,18 @@ class Odrive:
 
         self.odrv0.axis0.controller.config.vel_limit_tolerance = 2
 
+    def _config_watchdog(self):
+        # TODO : Implement a thread that send a watchdog regularly with self.odrv0.axis0.watchdog_feed(),
+        #  once done set enable_watchdog to true
+        """
+        Configures a watchdog. If the odrive does not receive a watchdog before the time given in watchdog_timeout, it
+        will disconnect.
+
+        Not yet functional.
+        """
+        self.odrv0.axis0.enable_watchdog = False
+        self.odrv0.axis0.config.watchdog_timeout = 1.2
+
     def calibration(self):
         """
         Calibrates the odrive.
@@ -254,6 +266,7 @@ class OdriveEncoderHall(Odrive):
         self._config_brake_resistor()
         self._config_overvoltage()
         self._config_controller(self._vel_limit)
+        self._config_watchdog()
         self.save_configuration()
 
         print("Configuration done")
